@@ -1,0 +1,9 @@
+/*滚动条*/
+.scrollbox {
+	background: #f7f7f7;
+}
+.scrollBar {
+	width: 8px;
+	border-radius: 6px;
+	background: #c2c2c2;
+}
