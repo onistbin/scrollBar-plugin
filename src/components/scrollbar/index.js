@@ -50,6 +50,11 @@ export default class ScrollBar extends Component {
         this._bindEvent();
     }
 
+    _setScrollBarBg (bgColor) {
+        this.$scrollBar.css('background', bgColor);
+    }
+
+
     _bindEvent () {
         let self = this,
             SPEED = 4,
@@ -67,12 +72,10 @@ export default class ScrollBar extends Component {
                 contentBoxGetRect = self.$contentBox.getRect(),
                 conTop = -parseInt(self.$contentBox.css('top')) || 0,
                 wheelFlag = conTop * SPEED + data,
-                flag = wheelFlag / SPEED;
+                flag = wheelFlag / SPEED < 0 ? 0 :  wheelFlag / SPEED;
 
-            if (flag <= 0) {
-                flag = 0;
-                wheelFlag = 0;
-            }
+            wheelFlag = flag <= 0 ? 0 : wheelFlag
+
             if (flag >= (contentBoxGetRect.height - mainBoxGetRect.height)) {
                 flag = (contentBoxGetRect.height - mainBoxGetRect.height);
                 wheelFlag = (contentBoxGetRect.height - mainBoxGetRect.height) * SPEED;
@@ -89,81 +92,71 @@ export default class ScrollBar extends Component {
         $parentNode.on('click', (event) => {
             this.clickScroll(event);
         });
+        
 
         /*
         * 鼠标移入内容区域
         */
         this.$mainBox.on('mouseenter', () => {
+            let scrollBarBg = mouseDown ? this.scrollBarHoverBg : this.mouseoverBarBg;
             mainBoxMouseenter = true;
-            if (mouseDown) {
-                this.$scrollBar.css('background', this.scrollBarHoverBg);
-            } else {
-                this.$scrollBar.css('background', this.mouseoverBarBg);
-            }
+            this._setScrollBarBg(scrollBarBg);
         });
 
         /*
         * 鼠标移出内容区域
         */
         this.$mainBox.on('mouseleave', () => {
+            let scrollBarBg = mouseDown ? this.scrollBarHoverBg : this.scrollBarBg;
             mainBoxMouseenter = false;
-            if (mouseDown) {
-                this.$scrollBar.css('background', this.scrollBarHoverBg);
-            } else {
-                this.$scrollBar.css('background', this.scrollBarBg);
-            }
+            this._setScrollBarBg(scrollBarBg);
         });
 
         /*
         * 鼠标移入scrollBar
         */
-        this.$scrollBar.on('mouseenter', function () {
-            W(this).css('background', self.scrollBarHoverBg);
+        this.$scrollBar.on('mouseenter', () => {
+            this._setScrollBarBg(this.scrollBarHoverBg);
         });
 
         /*
         * 鼠标移出scrollBar
         */
-        this.$scrollBar.on('mouseleave', function () {
+        this.$scrollBar.on('mouseleave', () => {
+            let scrollBarBg = mainBoxMouseenter ? this.mouseoverBarBg : this.scrollBarBg;
             scrollBarMouseenter = false;
+
             if (mouseDown) {
-                W(this).css('background', self.scrollBarHoverBg);
+                this._setScrollBarBg(this.scrollBarHoverBg);
                 return;
             }
-            if (mainBoxMouseenter) {
-                W(this).css('background', self.mouseoverBarBg);
-            } else {
-                self.$scrollBar.css('background', self.scrollBarBg);
-            }
+            this._setScrollBarBg(scrollBarBg);
         });
 
 
         /*
         * 鼠标按下左键拖动
         */
-        this.$scrollBar.on('mousedown', function (event) {
+        this.$scrollBar.on('mousedown',  (event) => {
             event.preventDefault();
-            self._dragScroll(event);
-            W(this).css('background', self.scrollBarHoverBg);
             mouseDown = true;
             scrollBarMouseenter = true;
+            this._dragScroll(event);
+            this._setScrollBarBg(this.scrollBarHoverBg);
         });
 
         /*
         * 鼠标松开左键
         */
         $doc.on('mouseup', (ev) => {
+            let scrollBarBg = mainBoxMouseenter ? this.mouseoverBarBg : this.scrollBarBg;
             $doc.un('mousemove');
             mouseDown = false;
             if (scrollBarMouseenter) {
-                this.$scrollBar.css('background', this.scrollBarHoverBg);
+                this._setScrollBarBg(this.scrollBarHoverBg);
                 return;
             }
-            if (mainBoxMouseenter) {
-                this.$scrollBar.css('background', this.mouseoverBarBg);
-            } else {
-                this.$scrollBar.css('background', this.scrollBarBg);
-            }
+            this._setScrollBarBg(scrollBarBg);
         });
     }
 
