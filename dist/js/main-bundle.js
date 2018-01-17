@@ -526,18 +526,21 @@ function updateLink (link, options, obj) {
 
 __webpack_require__(3);
 
-var _scrollbar = __webpack_require__(6);
+__webpack_require__(6);
+
+var _scrollbar = __webpack_require__(8);
 
 var _scrollbar2 = _interopRequireDefault(_scrollbar);
 
-var _jquery = __webpack_require__(10);
+var _jquery = __webpack_require__(12);
 
 var _jquery2 = _interopRequireDefault(_jquery);
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
 
 var App = function App() {
-    var scrollBar1 = new _scrollbar2.default({
+    var $showScrollParams = W('#show-scrollparams');
+    var scrollBar = new _scrollbar2.default({
         mainBox: '#main',
         contentBox: '#content',
         scrollBarClass: 'scrollBar',
@@ -546,8 +549,8 @@ var App = function App() {
         mouseoverBarBg: '#8a8a8a',
         scrollBarHoverBg: '#515151'
     });
-    scrollBar1.scroll(function (ev) {
-        console.log('first scrollbar, scroll event:', ev);
+    scrollBar.scroll(function (ev) {
+        $showScrollParams.html('\n            <p>type: ' + ev.type + '</p>\n            <p>mainBoxWidth: ' + ev.mainBoxWidth + '</p>\n            <p>mainBoxHeight: ' + ev.mainBoxHeight + '</p>\n            <p>contentBoxHeight: ' + ev.contentBoxHeight + '</p>\n            <p>contentBoxTop: ' + ev.contentBoxTop + '</p>\n            <p>scrollBarHeight: ' + ev.scrollBarHeight + '</p>\n            <p>scrollBarTop: ' + ev.scrollBarTop + '</p>\n        ');
     });
 };
 new App();
@@ -696,514 +699,10 @@ module.exports = function (css) {
 /* 6 */
 /***/ (function(module, exports, __webpack_require__) {
 
-"use strict";
-
-
-__webpack_require__(7);
-
-var _tpl = __webpack_require__(9);
-
-var _tpl2 = _interopRequireDefault(_tpl);
-
-function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
-
-/** 
- * ScrollBar Plugin Module
- * wangjianbing@360.cn
- *
- *
- * mainBox: '#main'                     盒子容器，最外层(必须)
- * content: '#content'                  滚动内容部分容器（必须）
- * scrollBar: 'scrollBar',              scrollBar     （必须）
- * hoverBgColor: '#8a8a8a',             hoverBgColor scrollBar hover  scrollBar
- * 
- */
-
-var ScrollBar = function ScrollBar(options) {
-    this._init(options);
-};
-
-ScrollBar.prototype.constructor = ScrollBar;
-
-/*
-* _init
-* param {}
-*/
-ScrollBar.prototype._init = function (options) {
-    this.options = options;
-    this.mainBox = this.options.mainBox;
-    this.contentBox = this.options.contentBox;
-    this.scrollBarClass = this.options.scrollBarClass;
-    this.scrollBarBoxClass = this.options.scrollBarBoxClass;
-    this.mouseoverBarBg = this.options.mouseoverBarBg;
-    this.scrollBarBg = this.options.scrollBarBg;
-    this.scrollBarHoverBg = this.options.scrollBarHoverBg;
-
-    this.$mainBox = W(this.mainBox);
-    this.$contentBox = W(this.contentBox);
-    this.$scrollBar = this._createScrollDom(this.$mainBox, this.scrollBarClass, this.scrollBarBoxClass);
-
-    /**
-    * 初始化后基本不变的一些值
-    * 当宽窄屏切换的时候会变
-    * CV 即 constant values
-    */
-    this.CV = {
-        mainBoxTop: this.$mainBox.getRect().top,
-        mainBoxWidth: this.$mainBox.getRect().width,
-        mainBoxHeight: this.$mainBox.getRect().height || 300,
-        scrollBarWidth: this.$scrollBar.getRect().width
-    };
-
-    /**
-    * 滚动回调默认方法
-    */
-    this.scrollCallBack = function (ev) {};
-
-    this.wheelData = -1;
-    this.cancelWheelFlag = true;
-    this.onMouseWheelEv = false;
-
-    /**
-     * 初始化滚动条样式
-     */
-    this.setScrollStyle();
-
-    this.wheelChange();
-    this.bindEvent();
-};
-
-/*
-* bindEvent
-* param {}
-*/
-ScrollBar.prototype.bindEvent = function () {
-    var self = this,
-        $doc = W(document),
-        $parentNode = this.$scrollBar.parentNode(),
-        mainBoxMouseenter = false,
-        scrollBarMouseenter = false,
-        mouseDown = false;
-    /*
-    * 点击滚动条区域
-    */
-    $parentNode.on('click', function (event) {
-        self.clickScroll(event);
-    });
-
-    /*
-    * 鼠标移入内容区域
-    */
-    self.$mainBox.on('mouseenter', function () {
-        mainBoxMouseenter = true;
-        if (mouseDown) {
-            self.$scrollBar.css('background', self.scrollBarHoverBg);
-        } else {
-            self.$scrollBar.css('background', self.mouseoverBarBg);
-        }
-    });
-    /*
-    * 鼠标移出内容区域
-    */
-    self.$mainBox.on('mouseleave', function () {
-        mainBoxMouseenter = false;
-        if (mouseDown) {
-            self.$scrollBar.css('background', self.scrollBarHoverBg);
-        } else {
-            self.$scrollBar.css('background', self.scrollBarBg);
-        }
-    });
-
-    /*
-    * 鼠标移入scrollBar
-    */
-    self.$scrollBar.on('mouseenter', function () {
-        W(this).css('background', self.scrollBarHoverBg);
-    });
-
-    /*
-    * 鼠标移出scrollBar
-    */
-    self.$scrollBar.on('mouseleave', function () {
-        scrollBarMouseenter = false;
-        if (mouseDown) {
-            W(this).css('background', self.scrollBarHoverBg);
-            return;
-        }
-        if (mainBoxMouseenter) {
-            W(this).css('background', self.mouseoverBarBg);
-        } else {
-            self.$scrollBar.css('background', self.scrollBarBg);
-        }
-    });
-
-    /*
-    * 鼠标按下左键拖动
-    */
-    self.$scrollBar.on('mousedown', function (event) {
-        event.preventDefault();
-        self._dragScroll(event);
-        W(this).css('background', self.scrollBarHoverBg);
-        mouseDown = true;
-        scrollBarMouseenter = true;
-    });
-
-    /*
-    * 鼠标松开左键
-    */
-    $doc.on('mouseup', function (ev) {
-        $doc.un('mousemove');
-        mouseDown = false;
-        if (scrollBarMouseenter) {
-            self.$scrollBar.css('background', self.scrollBarHoverBg);
-            return;
-        }
-        if (mainBoxMouseenter) {
-            self.$scrollBar.css('background', self.mouseoverBarBg);
-        } else {
-            self.$scrollBar.css('background', self.scrollBarBg);
-        }
-    });
-};
-
-/*
-* _createScrollDom
-* param {}
-*/
-ScrollBar.prototype._createScrollDom = function (mainBox, scrollBarClass, scrollBarBoxClass) {
-    var $scrollBox = W('<div></div>'),
-        scroll = W('<div></div>'),
-        $scroll = W(scroll);
-
-    $scrollBox.appendChild($scroll);
-    $scroll.addClass(scrollBarClass);
-    $scrollBox.addClass(scrollBarBoxClass);
-    mainBox.appendChild($scrollBox);
-
-    return $scroll;
-};
-
-/*
-* setScrollStyle
-* param {}
-* 设置大小、位置、样式
-*/
-ScrollBar.prototype.setScrollStyle = function () {
-    var CV = this.CV,
-        $parentNode = this.$scrollBar.parentNode(),
-        conHeight = this.$contentBox.getRect().height || 1,
-        conTop = parseInt(this.$contentBox.css('top')) || 0,
-        _width = CV.mainBoxWidth,
-        _height = CV.mainBoxHeight,
-        _scrollWidth = CV.scrollBarWidth,
-        _left = _width - _scrollWidth,
-        _scrollHeight = parseInt(_height * (_height / conHeight)),
-        _rote = -conTop / conHeight,
-        wheelScrollBarTop = Math.ceil(_rote * _height);
-
-    $parentNode.css({
-        'width': _scrollWidth + 2 + "px",
-        'height': _height + "px",
-        'left': _left - 2 + "px",
-        'position': 'absolute'
-    });
-
-    this.$mainBox.css({
-        position: 'relative'
-    });
-
-    this.$contentBox.css({
-        position: 'absolute',
-        width: _width - _scrollWidth + "px"
-    });
-
-    this.$scrollBar.css({
-        'position': "absolute",
-        'height': _scrollHeight + "px",
-        'top': wheelScrollBarTop + "px"
-    });
-};
-
-/*
-* 拖拽滚动条 dragScroll
-*/
-ScrollBar.prototype._dragScroll = function (event) {
-    var self = this,
-        CV = this.CV,
-        $doc = W(document),
-        clickClientY = event.clientY,
-        _scrollTop = this.$scrollBar.getRect().top - this.$mainBox.getRect().top;
-
-    $doc.on('mousemove', function (ev) {
-        scrollGo(ev);
-    });
-
-    function scrollGo(ev) {
-        ev.preventDefault();
-        var clientY = ev.clientY,
-            _t = clientY - clickClientY + _scrollTop,
-            scrollBarTop = self.getScrollBarTop(_t);
-
-        self.setScrollTop({
-            top: scrollBarTop,
-            type: 'dragScroll'
-        });
-    }
-};
-
-/**
- * 判断滚动条是否到达上下边界
- * @param {*} callback 
- */
-
-ScrollBar.prototype.getScrollBarTop = function (scrollBartop) {
-    var CV = this.CV,
-        mainBoxHeight = CV.mainBoxHeight,
-        scrollBarHeight = this.$scrollBar.getRect().height;
-
-    /**
-     * 下边界
-     */
-    scrollBartop = scrollBartop > mainBoxHeight - scrollBarHeight ? mainBoxHeight - scrollBarHeight : scrollBartop;
-
-    /**
-     * 上边界
-     */
-    scrollBartop = scrollBartop <= 0 ? 0 : scrollBartop;
-
-    return scrollBartop;
-};
-
-/*
-* scroll
-* param callback
-* type function
-* 监听自定义滚动条事件
-*/
-ScrollBar.prototype.scroll = function (callback) {
-    this.scrollCallBack = callback || this.scrollCallBack;
-};
-
-/*
-* mouseWheel
-* param {$obj, handler}
-* type {$obj, function}
-* 监听自定义滚动条事件
-*/
-ScrollBar.prototype.mouseWheel = function ($obj, handler) {
-    var self = this,
-        getWheelData = function getWheelData(event) {
-        return event.wheelDelta ? event.wheelDelta : event.detail * 40;
-    };
-
-    $obj.on('mousewheel, DOMMouseScroll', function (event) {
-        var data = event.type === 'mousewheel' ? -getWheelData(event) : getWheelData(event);
-        /**
-        * isBoundary,判断是否到达上下边界
-        */
-        if (self.onMouseWheelEv || self.isBoundary(event) && self.cancelWheelFlag) {
-            return;
-        }
-        handler(data);
-        event.preventDefault();
-    });
-};
-
-/*
-* onMouseWheelDir
-* param {ev}
-* return  'down' || 'up'
-* 滚轮方向
-*/
-ScrollBar.prototype.onMouseWheelDir = function (ev) {
-    var dir = ev.wheelDelta ? ev.wheelDelta < 0 : ev.Detail > 0;
-    return dir ? 'down' : 'up';
-};
-
-/**
-* isBoundary value = false则滚动
-* up 里边内容向上
-* down 里边内容向下
-* @type {{ev}}
-* 判断临界条件
-*/
-ScrollBar.prototype.isBoundary = function (ev) {
-    var contentBoxTop = parseInt(this.$contentBox.css('top')),
-        contentBoxHeight = this.$contentBox.getRect().height,
-        dir = this.onMouseWheelDir(ev),
-        downStop = -contentBoxTop >= contentBoxHeight - this.$mainBox.getRect().height,
-        upStop = contentBoxTop >= 0;
-
-    var isBoundary = dir === 'down' && downStop || dir === 'up' && upStop;
-
-    if (!isBoundary) {
-        ev.preventDefault();
-    }
-    return isBoundary;
-};
-
-/**
-* setcancelWheelFlag
-*/
-ScrollBar.prototype.setCancelWheelFlag = function (val) {
-    this.cancelWheelFlag = val;
-};
-
-/**
-* setOnMouseWheelEv
-*/
-ScrollBar.prototype.setOnMouseWheelEv = function (val) {
-    this.onMouseWheelEv = val;
-};
-
-/**
-* wheelChange
-* 鼠标滚轮滚动，滚动条滚动
-*/
-ScrollBar.prototype.wheelChange = function () {
-    var SPEED = 6,
-        flag = 0,
-        self = this;
-
-    this.mouseWheel(self.$mainBox, function (data) {
-        var scrollBarGetRect = self.$scrollBar.getRect(),
-            mainBoxGetRect = self.$mainBox.getRect(),
-            contentBoxGetRect = self.$contentBox.getRect(),
-            conTop = -parseInt(self.$contentBox.css('top')) || 0,
-            wheelFlag = conTop * SPEED;
-
-        wheelFlag += data;
-        if (self.wheelData >= 0) {
-            flag = self.wheelData;
-            wheelFlag = self.wheelData * SPEED;
-            self.wheelData = -1;
-        } else {
-            flag = wheelFlag / SPEED;
-        }
-        if (flag <= 0) {
-            flag = 0;
-            wheelFlag = 0;
-        }
-        if (flag >= contentBoxGetRect.height - mainBoxGetRect.height) {
-            flag = contentBoxGetRect.height - mainBoxGetRect.height;
-            wheelFlag = (contentBoxGetRect.height - mainBoxGetRect.height) * SPEED;
-        }
-        self.setScrollTop({
-            top: flag,
-            type: 'wheelScroll'
-        });
-    });
-};
-
-/*
-* clickScroll
-* param {ev}
-*/
-ScrollBar.prototype.clickScroll = function (event) {
-    var $target = W(event.target),
-        sTop = Dom.getDocRect().scrollY,
-        top = this.$mainBox.getRect().top,
-        SBT = parseInt(this.$scrollBar.css('top')),
-        SBH = this.$scrollBar.getRect().height,
-        _top = event.clientY + sTop - top - SBH / 2;
-
-    _top = this.getScrollBarTop(_top);
-
-    _top = _top - SBT < 0 ? SBT - SBH : SBT + SBH;
-
-    if ($target.hasClass(this.scrollBarClass)) {
-        return;
-    }
-    this.setScrollTop({
-        top: _top,
-        type: 'animateScroll'
-    });
-};
-
-/*
-* setScrollTop
-* param {top, animate}
-*/
-ScrollBar.prototype.setScrollTop = function (opt) {
-    var self = this,
-        top = opt.top,
-        type = opt.type,
-        CV = this.CV,
-        MBH = CV.mainBoxHeight,
-        CBH = this.$contentBox.getRect().height,
-        disH = MBH - this.$scrollBar.getRect().height || 1,
-        scale = top / disH,
-        rote = top / CBH,
-        SBH = self.$scrollBar.getRect().height,
-        _top = top + SBH > MBH ? MBH - SBH : top,
-        _contentTop = -(CBH - MBH) * scale,
-        contentTop = _contentTop < MBH - CBH ? MBH - CBH : _contentTop;
-
-    var computedPosition = function computedPosition(top) {
-
-        if (top + SBH >= MBH) {
-            _top = MBH - SBH;
-            contentTop = MBH - CBH;
-        } else if (_top < 0) {
-            _top = 0;
-        }
-        return {
-            SBT: _top,
-            CBT: contentTop > 0 ? 0 : contentTop
-        };
-    };
-    var position = computedPosition(top);
-
-    if (type === 'dragScroll') {
-        this.$scrollBar.css({ top: position.SBT + "px" });
-        this.$contentBox.css({ top: position.CBT + "px" });
-    }
-
-    if (type === 'animateScroll') {
-        this.$scrollBar.animate({ top: { to: position.SBT + "px" } }, 200);
-        this.$contentBox.animate({ top: { to: Math.ceil(position.CBT) + "px" } }, 200, function () {
-            self.scrollCallBack({
-                mainBoxWidth: CV.mainBoxWidth,
-                mainBoxHeight: CV.mainBoxHeight,
-                contentBoxHeight: CBH,
-                contentBoxTop: parseInt(self.$contentBox.css('top')),
-                scrollBarHeight: SBH,
-                scrollBarTop: parseInt(self.$scrollBar.css('top'))
-            });
-        });
-        return;
-    }
-
-    if (type === 'wheelScroll') {
-        var wheelCBT = -top < MBH - CBH ? MBH - CBH : -top,
-            _wheelSBT = Math.ceil(rote * MBH);
-        _wheelSBT = self.getScrollBarTop(_wheelSBT);
-
-        this.$scrollBar.css('top', _wheelSBT + "px");
-        this.$contentBox.css('top', wheelCBT + "px");
-    }
-
-    this.scrollCallBack({
-        type: type,
-        mainBoxWidth: CV.mainBoxWidth,
-        mainBoxHeight: CV.mainBoxHeight,
-        contentBoxHeight: CBH,
-        contentBoxTop: parseInt(self.$contentBox.css('top')),
-        scrollBarHeight: SBH,
-        scrollBarTop: parseInt(self.$scrollBar.css('top'))
-    });
-};
-
-module.exports = ScrollBar;
-
-/***/ }),
-/* 7 */
-/***/ (function(module, exports, __webpack_require__) {
-
 // style-loader: Adds some css to the DOM by adding a <style> tag
 
 // load the styles
-var content = __webpack_require__(8);
+var content = __webpack_require__(7);
 if(typeof content === 'string') content = [[module.i, content, '']];
 // Prepare cssTransformation
 var transform;
@@ -1217,8 +716,8 @@ if(content.locals) module.exports = content.locals;
 if(false) {
 	// When the styles change, update the <style> tags
 	if(!content.locals) {
-		module.hot.accept("!!../../../node_modules/css-loader/index.js!../../../node_modules/less-loader/dist/cjs.js!./style.less", function() {
-			var newContent = require("!!../../../node_modules/css-loader/index.js!../../../node_modules/less-loader/dist/cjs.js!./style.less");
+		module.hot.accept("!!../../../node_modules/css-loader/index.js!./style.css", function() {
+			var newContent = require("!!../../../node_modules/css-loader/index.js!./style.css");
 			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
 			update(newContent);
 		});
@@ -1228,7 +727,7 @@ if(false) {
 }
 
 /***/ }),
-/* 8 */
+/* 7 */
 /***/ (function(module, exports, __webpack_require__) {
 
 exports = module.exports = __webpack_require__(0)(undefined);
@@ -1236,19 +735,669 @@ exports = module.exports = __webpack_require__(0)(undefined);
 
 
 // module
-exports.push([module.i, "/*滚动条*/\n.scrollbox {\n  background: #f7f7f7;\n}\n.scrollBar {\n  width: 8px;\n  border-radius: 6px;\n  background: #c2c2c2;\n}\n", ""]);
+exports.push([module.i, "#main {\n\tfloat: left;\n\tmargin: 50px;\n\twidth: 300px;\n\theight: 400px;\n\toverflow: hidden;\n}\n#content {\n\tbackground: red;\n}\n\n#main-box {\n\tfloat: left;\n\tmargin: 50px;\n\twidth: 200px;\n\theight: 300px;\n\toverflow: hidden;\n}\n#content-box {\n\tbackground: yellow;\n}\n", ""]);
 
 // exports
 
 
 /***/ }),
+/* 8 */
+/***/ (function(module, exports, __webpack_require__) {
+
+"use strict";
+
+
+Object.defineProperty(exports, "__esModule", {
+    value: true
+});
+
+var _createClass = function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ("value" in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; }();
+
+__webpack_require__(9);
+
+var _tpl = __webpack_require__(11);
+
+var _tpl2 = _interopRequireDefault(_tpl);
+
+function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { default: obj }; }
+
+function _possibleConstructorReturn(self, call) { if (!self) { throw new ReferenceError("this hasn't been initialised - super() hasn't been called"); } return call && (typeof call === "object" || typeof call === "function") ? call : self; }
+
+function _inherits(subClass, superClass) { if (typeof superClass !== "function" && superClass !== null) { throw new TypeError("Super expression must either be null or a function, not " + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
+
+function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError("Cannot call a class as a function"); } }
+
+var Component = function Component() {
+    var opts = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+    _classCallCheck(this, Component);
+
+    this.options = opts;
+    console.log(opts);
+    this.mainBox = this.options.mainBox;
+    this.contentBox = this.options.contentBox;
+    this.scrollBarClass = this.options.scrollBarClass;
+    this.scrollBarBoxClass = this.options.scrollBarBoxClass;
+    this.mouseoverBarBg = this.options.mouseoverBarBg;
+    this.scrollBarBg = this.options.scrollBarBg;
+    this.scrollBarHoverBg = this.options.scrollBarHoverBg;
+
+    this.$mainBox = W(this.mainBox);
+    this.$contentBox = W(this.contentBox);
+
+    this.$scrollBar = this._createScrollDom(this.$mainBox, this.scrollBarClass, this.scrollBarBoxClass);
+
+    /**
+     * 滚动回调默认方法
+     */
+    this.scrollCallBack = function (ev) {};
+};
+
+var ScrollBar = function (_Component) {
+    _inherits(ScrollBar, _Component);
+
+    function ScrollBar() {
+        var opts = arguments.length > 0 && arguments[0] !== undefined ? arguments[0] : {};
+
+        _classCallCheck(this, ScrollBar);
+
+        /**
+        * 初始化后基本不变的一些值
+        * 当宽窄屏切换的时候会变
+        * CV 即 constant values
+        */
+        var _this = _possibleConstructorReturn(this, (ScrollBar.__proto__ || Object.getPrototypeOf(ScrollBar)).call(this, opts));
+
+        _this.CV = {
+            mainBoxTop: _this.$mainBox.getRect().top,
+            mainBoxWidth: _this.$mainBox.getRect().width,
+            mainBoxHeight: _this.$mainBox.getRect().height || 300,
+            scrollBarWidth: _this.$scrollBar.getRect().width
+        };
+
+        _this.setCancelWheelFlag(true);
+        _this.setOnMouseWheelEv(false);
+
+        /**
+         * 初始化滚动条样式
+         */
+        _this.setScrollStyle();
+
+        _this._bindEvent();
+        return _this;
+    }
+
+    /**
+     * 设置scrollBar 背景色
+     * @param {*} bgColor 
+     */
+
+
+    _createClass(ScrollBar, [{
+        key: '_setScrollBarBg',
+        value: function _setScrollBarBg(bgColor) {
+            this.$scrollBar.css('background', bgColor);
+        }
+    }, {
+        key: '_bindEvent',
+        value: function _bindEvent() {
+            var _this2 = this;
+
+            var self = this;
+            var SPEED = 4; //滚轮速度设置
+            var $doc = W(document);
+            var $parentNode = this.$scrollBar.parentNode();
+
+            var mainBoxMouseenter = false,
+                scrollBarMouseenter = false,
+                mouseDown = false;
+
+            /*
+            * 点击滚动条区域
+            */
+            $parentNode.on('click', function (event) {
+                _this2.clickScroll(event);
+            });
+
+            /*
+            * 鼠标移入scrollBar
+            */
+            this.$scrollBar.on('mouseenter', function () {
+                _this2._setScrollBarBg(_this2.scrollBarHoverBg);
+            });
+
+            /*
+            * 鼠标移入内容区域
+            */
+            this.$mainBox.on('mouseenter', function () {
+                var scrollBarBg = mouseDown ? _this2.scrollBarHoverBg : _this2.mouseoverBarBg;
+                mainBoxMouseenter = true;
+                _this2._setScrollBarBg(scrollBarBg);
+            });
+
+            /*
+            * 鼠标移出内容区域
+            */
+            this.$mainBox.on('mouseleave', function () {
+                var scrollBarBg = mouseDown ? _this2.scrollBarHoverBg : _this2.scrollBarBg;
+                mainBoxMouseenter = false;
+                _this2._setScrollBarBg(scrollBarBg);
+            });
+
+            /*
+            * 鼠标移出scrollBar
+            */
+            this.$scrollBar.on('mouseleave', function () {
+                var scrollBarBg = mainBoxMouseenter ? _this2.mouseoverBarBg : _this2.scrollBarBg;
+                scrollBarMouseenter = false;
+                if (mouseDown) {
+                    _this2._setScrollBarBg(_this2.scrollBarHoverBg);
+                    return;
+                }
+                _this2._setScrollBarBg(scrollBarBg);
+            });
+
+            /*
+            * 鼠标按下左键拖动
+            */
+            this.$scrollBar.on('mousedown', function (event) {
+                event.preventDefault();
+                mouseDown = true;
+                scrollBarMouseenter = true;
+                _this2._dragScroll(event);
+                _this2._setScrollBarBg(_this2.scrollBarHoverBg);
+            });
+
+            /*
+            * 鼠标松开左键
+            */
+            $doc.on('mouseup', function (ev) {
+                var scrollBarBg = mainBoxMouseenter ? _this2.mouseoverBarBg : _this2.scrollBarBg;
+
+                $doc.un('mousemove');
+                mouseDown = false;
+                if (scrollBarMouseenter) {
+                    _this2._setScrollBarBg(_this2.scrollBarHoverBg);
+                    return;
+                }
+                _this2._setScrollBarBg(scrollBarBg);
+            });
+
+            /**
+            * 滚轮滚动事件
+            */
+            this.mouseWheel(self.$mainBox, function (data) {
+                var mainBoxGetRect = self.$mainBox.getRect();
+                var contentBoxGetRect = self.$contentBox.getRect();
+                var conTop = -parseInt(self.$contentBox.css('top')) || 0,
+                    wheelFlag = conTop * SPEED + data,
+                    flag = wheelFlag / SPEED < 0 ? 0 : wheelFlag / SPEED;
+
+                wheelFlag = flag <= 0 ? 0 : wheelFlag;
+
+                if (flag >= contentBoxGetRect.height - mainBoxGetRect.height) {
+                    flag = contentBoxGetRect.height - mainBoxGetRect.height;
+                    wheelFlag = (contentBoxGetRect.height - mainBoxGetRect.height) * SPEED;
+                }
+                self.setScrollTop({
+                    top: flag,
+                    type: 'wheelScroll'
+                });
+            });
+        }
+
+        /**
+         * 创建scroll Dom
+         * @param {*} mainBox 
+         * @param {*} scrollBarClass 
+         * @param {*} scrollBarBoxClass 
+         */
+
+    }, {
+        key: '_createScrollDom',
+        value: function _createScrollDom(mainBox, scrollBarClass, scrollBarBoxClass) {
+            var $scrollBox = W('<div></div>'),
+                scroll = W('<div></div>'),
+                $scroll = W(scroll);
+
+            $scrollBox.appendChild($scroll);
+            $scroll.addClass(scrollBarClass);
+            $scrollBox.addClass(scrollBarBoxClass);
+            mainBox.appendChild($scrollBox);
+
+            return $scroll;
+        }
+
+        /*
+        * setScrollStyle
+        * param {}
+        * 设置大小、位置、样式
+        */
+
+    }, {
+        key: 'setScrollStyle',
+        value: function setScrollStyle() {
+            var CV = this.CV,
+                $parentNode = this.$scrollBar.parentNode(),
+                conHeight = this.$contentBox.getRect().height || 1,
+                conTop = parseInt(this.$contentBox.css('top')) || 0,
+                _width = CV.mainBoxWidth,
+                _height = CV.mainBoxHeight,
+                _scrollWidth = CV.scrollBarWidth,
+                _left = _width - _scrollWidth,
+                _scrollHeight = parseInt(_height * (_height / conHeight)),
+                _rote = -conTop / conHeight,
+                wheelScrollBarTop = Math.ceil(_rote * _height);
+
+            $parentNode.css({
+                'width': _scrollWidth + 2 + "px",
+                'height': _height + "px",
+                'left': _left - 2 + "px",
+                'position': 'absolute'
+            });
+
+            this.$mainBox.css({
+                position: 'relative'
+            });
+
+            this.$contentBox.css({
+                position: 'absolute',
+                width: _width - _scrollWidth + "px"
+            });
+
+            this.$scrollBar.css({
+                'position': "absolute",
+                'height': _scrollHeight + "px",
+                'top': wheelScrollBarTop + "px"
+            });
+        }
+
+        /*
+        * 拖拽滚动条 dragScroll
+        */
+
+    }, {
+        key: '_dragScroll',
+        value: function _dragScroll() {
+            var self = this,
+                CV = this.CV,
+                $doc = W(document),
+                clickClientY = event.clientY,
+                _scrollTop = this.$scrollBar.getRect().top - this.$mainBox.getRect().top;
+
+            var scrollGo = function scrollGo(ev) {
+                ev.preventDefault();
+                var clientY = ev.clientY,
+                    _t = clientY - clickClientY + _scrollTop,
+                    scrollBarTop = self._getScrollBarBoundary(_t);
+
+                self.setScrollTop({
+                    top: scrollBarTop,
+                    type: 'dragScroll'
+                });
+            };
+
+            $doc.on('mousemove', function (ev) {
+                scrollGo(ev);
+            });
+        }
+
+        /**
+         * 判断滚动条是否到达上下边界
+         * @param {*} callback 
+         */
+
+    }, {
+        key: '_getScrollBarBoundary',
+        value: function _getScrollBarBoundary(scrollBartop) {
+            var mainBoxHeight = this.CV.mainBoxHeight,
+                scrollBarHeight = this.$scrollBar.getRect().height;
+
+            /**
+             * 下边界
+             */
+            scrollBartop = scrollBartop > mainBoxHeight - scrollBarHeight ? mainBoxHeight - scrollBarHeight : scrollBartop;
+
+            /**
+             * 上边界
+             */
+            scrollBartop = scrollBartop <= 0 ? 0 : scrollBartop;
+
+            return scrollBartop;
+        }
+
+        /*
+        * scroll
+        * param callback
+        * type function
+        * 监听自定义滚动条事件
+        */
+
+    }, {
+        key: 'scroll',
+        value: function scroll(callback) {
+            this.scrollCallBack = callback || this.scrollCallBack;
+        }
+
+        /*
+        * mouseWheel
+        * param {$obj, handler}
+        * type {$obj, function}
+        * 监听自定义滚动条事件
+        */
+
+    }, {
+        key: 'mouseWheel',
+        value: function mouseWheel($obj, handler) {
+            var _this3 = this;
+
+            var getWheelData = function getWheelData(ev) {
+                return ev.wheelDelta ? ev.wheelDelta : ev.detail * 40;
+            },
+                mouseWheelVerity = function mouseWheelVerity(ev) {
+                return _this3.onMouseWheelEv || _this3.isBoundary(ev) && _this3.cancelWheelFlag;
+            };
+
+            $obj.on('mousewheel, DOMMouseScroll', function (event) {
+                var data = event.type === 'mousewheel' ? -getWheelData(event) : getWheelData(event);
+                /**
+                * isBoundary,判断是否到达上下边界
+                */
+                if (mouseWheelVerity(event)) {
+                    return;
+                }
+                handler(data);
+                event.preventDefault();
+            });
+        }
+
+        /*
+        * onMouseWheelDir
+        * param {ev}
+        * return  'down' || 'up'
+        * 滚轮方向
+        */
+
+    }, {
+        key: 'onMouseWheelDir',
+        value: function onMouseWheelDir(ev) {
+            var dir = ev.wheelDelta ? ev.wheelDelta < 0 : ev.Detail > 0;
+            return dir ? 'down' : 'up';
+        }
+
+        /**
+        * isBoundary value = false则滚动
+        * up 里边内容向上
+        * down 里边内容向下
+        * @type {{ev}}
+        * 判断临界条件
+        */
+
+    }, {
+        key: 'isBoundary',
+        value: function isBoundary(ev) {
+            var contentBoxTop = parseInt(this.$contentBox.css('top')),
+                contentBoxHeight = this.$contentBox.getRect().height,
+                dir = this.onMouseWheelDir(ev),
+                downStop = -contentBoxTop >= contentBoxHeight - this.$mainBox.getRect().height,
+                upStop = contentBoxTop >= 0;
+
+            var isBoundary = dir === 'down' && downStop || dir === 'up' && upStop;
+
+            if (!isBoundary) {
+                ev.preventDefault();
+            }
+            return isBoundary;
+        }
+
+        /**
+        * setcancelWheelFlag
+        */
+
+    }, {
+        key: 'setCancelWheelFlag',
+        value: function setCancelWheelFlag(val) {
+            this.cancelWheelFlag = val;
+        }
+    }, {
+        key: 'setOnMouseWheelEv',
+        value: function setOnMouseWheelEv(val) {
+            this.onMouseWheelEv = val;
+        }
+
+        /*
+        * clickScroll
+        * param {ev}
+        */
+
+    }, {
+        key: 'clickScroll',
+        value: function clickScroll(event) {
+            var $target = W(event.target),
+                sTop = Dom.getDocRect().scrollY,
+                top = this.$mainBox.getRect().top,
+                SBT = parseInt(this.$scrollBar.css('top')),
+                SBH = this.$scrollBar.getRect().height,
+                _top = event.clientY + sTop - top - SBH / 2;
+
+            _top = this._getScrollBarBoundary(_top);
+
+            _top = _top - SBT < 0 ? SBT - SBH : SBT + SBH;
+
+            if ($target.hasClass(this.scrollBarClass)) {
+                return;
+            }
+            this.setScrollTop({
+                top: _top,
+                type: 'animateScroll'
+            });
+        }
+
+        /*
+        * setScrollTop
+        * param {top, animate}
+        */
+
+    }, {
+        key: 'setScrollTop',
+        value: function setScrollTop(opt) {
+            var CV = this.CV,
+                top = opt.top,
+                type = opt.type;
+
+
+            var dragPos = this._getPos(top);
+            switch (type) {
+                case 'dragScroll':
+                    this._setPosition(dragPos);
+                    break;
+
+                case 'animateScroll':
+                    this._setAniPos(type, dragPos);
+                    break;
+
+                case 'wheelScroll':
+                    var wheelPos = this._getWheelPos(top);
+                    this._setPosition(wheelPos);
+                    break;
+            }
+            var scrollParams = this._getScrollParams(type);
+            this.scrollCallBack(scrollParams);
+        }
+
+        /**
+         * 设置滚动条和内容的位置
+         * @param {*} position 
+         */
+
+    }, {
+        key: '_setPosition',
+        value: function _setPosition(position) {
+            this.$scrollBar.css({ top: position.SBT + "px" });
+            this.$contentBox.css({ top: position.CBT + "px" });
+        }
+
+        /**
+         * 动画方式滚动
+         * @param {*} position 
+         */
+
+    }, {
+        key: '_setAniPos',
+        value: function _setAniPos(type, position) {
+            var _this4 = this;
+
+            this.$scrollBar.animate({
+                top: {
+                    to: position.SBT + "px"
+                }
+            }, 200);
+            this.$contentBox.animate({
+                top: {
+                    to: Math.ceil(position.CBT) + "px"
+                }
+            }, 200, function () {
+                var scrollParams = _this4._getScrollParams(type);
+                console.log(scrollParams);
+                _this4.scrollCallBack(scrollParams);
+            });
+        }
+
+        /**
+         * 滚轮方式获取位置
+         * @param {*} top 
+         */
+
+    }, {
+        key: '_getWheelPos',
+        value: function _getWheelPos(top) {
+            var MBH = this.CV.mainBoxHeight,
+                CBH = this.$contentBox.getRect().height,
+                rote = top / CBH;
+
+
+            var wheelCBT = -top < MBH - CBH ? MBH - CBH : -top,
+                _wheelSBT = Math.ceil(rote * MBH);
+            _wheelSBT = this._getScrollBarBoundary(_wheelSBT);
+
+            return {
+                SBT: _wheelSBT,
+                CBT: wheelCBT
+            };
+        }
+
+        /**
+         * 拖拽等方式获取位置
+         * @param {*} top 
+         */
+
+    }, {
+        key: '_getPos',
+        value: function _getPos(top) {
+            var SBH = this.$scrollBar.getRect().height,
+                CBH = this.$contentBox.getRect().height,
+                MBH = this.CV.mainBoxHeight,
+                disH = MBH - this.$scrollBar.getRect().height || 1,
+                scale = top / disH;
+
+
+            var _top = top + SBH > MBH ? MBH - SBH : top,
+                _contentTop = -(CBH - MBH) * scale,
+                contentTop = _contentTop < MBH - CBH ? MBH - CBH : _contentTop;
+
+            if (top + SBH >= MBH) {
+                _top = MBH - SBH;
+                contentTop = MBH - CBH;
+            } else if (_top < 0) {
+                _top = 0;
+            }
+            return {
+                SBT: _top,
+                CBT: contentTop > 0 ? 0 : contentTop
+            };
+        }
+
+        /**
+         * callback 返回的参数
+         * @param {*} type 
+         */
+
+    }, {
+        key: '_getScrollParams',
+        value: function _getScrollParams(type) {
+            var CV = this.CV;
+            var $scrollBar = this.$scrollBar;
+            var $contentBox = this.$contentBox;
+            return {
+                type: type,
+                mainBoxWidth: CV.mainBoxWidth,
+                mainBoxHeight: CV.mainBoxHeight,
+                contentBoxHeight: $contentBox.getRect().height,
+                contentBoxTop: parseInt($contentBox.css('top')),
+                scrollBarHeight: $scrollBar.getRect().height,
+                scrollBarTop: parseInt($scrollBar.css('top'))
+            };
+        }
+    }]);
+
+    return ScrollBar;
+}(Component);
+
+exports.default = ScrollBar;
+
+/***/ }),
 /* 9 */
+/***/ (function(module, exports, __webpack_require__) {
+
+// style-loader: Adds some css to the DOM by adding a <style> tag
+
+// load the styles
+var content = __webpack_require__(10);
+if(typeof content === 'string') content = [[module.i, content, '']];
+// Prepare cssTransformation
+var transform;
+
+var options = {"hmr":true}
+options.transform = transform
+// add the styles to the DOM
+var update = __webpack_require__(1)(content, options);
+if(content.locals) module.exports = content.locals;
+// Hot Module Replacement
+if(false) {
+	// When the styles change, update the <style> tags
+	if(!content.locals) {
+		module.hot.accept("!!../../../node_modules/css-loader/index.js!./style.css", function() {
+			var newContent = require("!!../../../node_modules/css-loader/index.js!./style.css");
+			if(typeof newContent === 'string') newContent = [[module.id, newContent, '']];
+			update(newContent);
+		});
+	}
+	// When the module is disposed, remove the <style> tags
+	module.hot.dispose(function() { update(); });
+}
+
+/***/ }),
+/* 10 */
+/***/ (function(module, exports, __webpack_require__) {
+
+exports = module.exports = __webpack_require__(0)(undefined);
+// imports
+
+
+// module
+exports.push([module.i, "/*滚动条*/\n.scrollbox {\n\tbackground: #f7f7f7;\n}\n.scrollBar {\n\twidth: 8px;\n\tborder-radius: 6px;\n\tbackground: #c2c2c2;\n}", ""]);
+
+// exports
+
+
+/***/ }),
+/* 11 */
 /***/ (function(module, exports) {
 
 module.exports = "";
 
 /***/ }),
-/* 10 */
+/* 12 */
 /***/ (function(module, exports, __webpack_require__) {
 
 var __WEBPACK_AMD_DEFINE_ARRAY__, __WEBPACK_AMD_DEFINE_RESULT__;/*!

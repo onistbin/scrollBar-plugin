@@ -50,66 +50,30 @@ export default class ScrollBar extends Component {
         this._bindEvent();
     }
 
+    /**
+     * 设置scrollBar 背景色
+     * @param {*} bgColor 
+     */
     _setScrollBarBg (bgColor) {
         this.$scrollBar.css('background', bgColor);
     }
 
 
     _bindEvent () {
-        let self = this,
-            SPEED = 4,
-            $doc = W(document),
-            $parentNode = this.$scrollBar.parentNode(),
-            mainBoxMouseenter = false,
-            scrollBarMouseenter = false,
-            mouseDown = false;
+        const   self = this;
+        const   SPEED = 4;  //滚轮速度设置
+        const   $doc = W(document);
+        const   $parentNode = this.$scrollBar.parentNode();
 
-        /**
-         * 滚轮滚动事件
-         */
-        this.mouseWheel(self.$mainBox, function(data) {
-            let mainBoxGetRect = self.$mainBox.getRect(),
-                contentBoxGetRect = self.$contentBox.getRect(),
-                conTop = -parseInt(self.$contentBox.css('top')) || 0,
-                wheelFlag = conTop * SPEED + data,
-                flag = wheelFlag / SPEED < 0 ? 0 :  wheelFlag / SPEED;
-
-            wheelFlag = flag <= 0 ? 0 : wheelFlag
-
-            if (flag >= (contentBoxGetRect.height - mainBoxGetRect.height)) {
-                flag = (contentBoxGetRect.height - mainBoxGetRect.height);
-                wheelFlag = (contentBoxGetRect.height - mainBoxGetRect.height) * SPEED;
-            }
-            self.setScrollTop({
-                top: flag,
-                type: 'wheelScroll'
-            });
-        });
+        let     mainBoxMouseenter = false,
+                scrollBarMouseenter = false,
+                mouseDown = false;
 
         /*
         * 点击滚动条区域
         */
         $parentNode.on('click', (event) => {
             this.clickScroll(event);
-        });
-        
-
-        /*
-        * 鼠标移入内容区域
-        */
-        this.$mainBox.on('mouseenter', () => {
-            let scrollBarBg = mouseDown ? this.scrollBarHoverBg : this.mouseoverBarBg;
-            mainBoxMouseenter = true;
-            this._setScrollBarBg(scrollBarBg);
-        });
-
-        /*
-        * 鼠标移出内容区域
-        */
-        this.$mainBox.on('mouseleave', () => {
-            let scrollBarBg = mouseDown ? this.scrollBarHoverBg : this.scrollBarBg;
-            mainBoxMouseenter = false;
-            this._setScrollBarBg(scrollBarBg);
         });
 
         /*
@@ -118,21 +82,37 @@ export default class ScrollBar extends Component {
         this.$scrollBar.on('mouseenter', () => {
             this._setScrollBarBg(this.scrollBarHoverBg);
         });
+        
+        /*
+        * 鼠标移入内容区域
+        */
+        this.$mainBox.on('mouseenter', () => {
+            const   scrollBarBg = mouseDown ? this.scrollBarHoverBg : this.mouseoverBarBg;
+            mainBoxMouseenter = true;
+            this._setScrollBarBg(scrollBarBg);
+        });
+
+        /*
+        * 鼠标移出内容区域
+        */
+        this.$mainBox.on('mouseleave', () => {
+            const   scrollBarBg = mouseDown ? this.scrollBarHoverBg : this.scrollBarBg;
+            mainBoxMouseenter = false;
+            this._setScrollBarBg(scrollBarBg);
+        });
 
         /*
         * 鼠标移出scrollBar
         */
         this.$scrollBar.on('mouseleave', () => {
-            let scrollBarBg = mainBoxMouseenter ? this.mouseoverBarBg : this.scrollBarBg;
+            const   scrollBarBg = mainBoxMouseenter ? this.mouseoverBarBg : this.scrollBarBg;
             scrollBarMouseenter = false;
-
             if (mouseDown) {
                 this._setScrollBarBg(this.scrollBarHoverBg);
                 return;
             }
             this._setScrollBarBg(scrollBarBg);
         });
-
 
         /*
         * 鼠标按下左键拖动
@@ -149,7 +129,8 @@ export default class ScrollBar extends Component {
         * 鼠标松开左键
         */
         $doc.on('mouseup', (ev) => {
-            let scrollBarBg = mainBoxMouseenter ? this.mouseoverBarBg : this.scrollBarBg;
+            const   scrollBarBg = mainBoxMouseenter ? this.mouseoverBarBg : this.scrollBarBg;
+
             $doc.un('mousemove');
             mouseDown = false;
             if (scrollBarMouseenter) {
@@ -158,8 +139,36 @@ export default class ScrollBar extends Component {
             }
             this._setScrollBarBg(scrollBarBg);
         });
+
+         /**
+         * 滚轮滚动事件
+         */
+        this.mouseWheel(self.$mainBox, function(data) {
+            const   mainBoxGetRect = self.$mainBox.getRect();
+            const   contentBoxGetRect = self.$contentBox.getRect();
+            let     conTop = -parseInt(self.$contentBox.css('top')) || 0,
+                    wheelFlag = conTop * SPEED + data,
+                    flag = wheelFlag / SPEED < 0 ? 0 :  wheelFlag / SPEED;
+
+            wheelFlag = flag <= 0 ? 0 : wheelFlag
+
+            if (flag >= (contentBoxGetRect.height - mainBoxGetRect.height)) {
+                flag = (contentBoxGetRect.height - mainBoxGetRect.height);
+                wheelFlag = (contentBoxGetRect.height - mainBoxGetRect.height) * SPEED;
+            }
+            self.setScrollTop({
+                top: flag,
+                type: 'wheelScroll'
+            });
+        });
     }
 
+    /**
+     * 创建scroll Dom
+     * @param {*} mainBox 
+     * @param {*} scrollBarClass 
+     * @param {*} scrollBarBoxClass 
+     */
     _createScrollDom (mainBox, scrollBarClass, scrollBarBoxClass) {
         let $scrollBox = W('<div></div>'),
             scroll = W('<div></div>'),
@@ -179,17 +188,17 @@ export default class ScrollBar extends Component {
     * 设置大小、位置、样式
     */
     setScrollStyle () {
-        let CV =  this.CV,
-            $parentNode = this.$scrollBar.parentNode(),
-            conHeight = this.$contentBox.getRect().height || 1,
-            conTop = parseInt(this.$contentBox.css('top')) || 0,
-            _width = CV.mainBoxWidth,
-            _height = CV.mainBoxHeight,
-            _scrollWidth = CV.scrollBarWidth,
-            _left = _width - _scrollWidth,
-            _scrollHeight = parseInt(_height * (_height / conHeight)),
-            _rote = -conTop / conHeight,
-            wheelScrollBarTop = Math.ceil(_rote * _height);
+        const   CV =  this.CV,
+                $parentNode = this.$scrollBar.parentNode(),
+                conHeight = this.$contentBox.getRect().height || 1,
+                conTop = parseInt(this.$contentBox.css('top')) || 0,
+                _width = CV.mainBoxWidth,
+                _height = CV.mainBoxHeight,
+                _scrollWidth = CV.scrollBarWidth,
+                _left = _width - _scrollWidth,
+                _scrollHeight = parseInt(_height * (_height / conHeight)),
+                _rote = -conTop / conHeight,
+                wheelScrollBarTop = Math.ceil(_rote * _height);
         
         $parentNode.css({
             'width': _scrollWidth + 2 + "px",
@@ -218,17 +227,17 @@ export default class ScrollBar extends Component {
     * 拖拽滚动条 dragScroll
     */
     _dragScroll () {
-        let self = this,
-            CV =  this.CV,
-            $doc = W(document),
-            clickClientY = event.clientY,
-            _scrollTop = this.$scrollBar.getRect().top - this.$mainBox.getRect().top;
+        const   self = this,
+                CV =  this.CV,
+                $doc = W(document),
+                clickClientY = event.clientY,
+                _scrollTop = this.$scrollBar.getRect().top - this.$mainBox.getRect().top;
 
-        let scrollGo = function (ev) {
+        const scrollGo = function (ev) {
             ev.preventDefault();
             let clientY = ev.clientY,
                 _t = clientY - clickClientY + _scrollTop,
-                scrollBarTop = self.getScrollBarBoundary(_t);
+                scrollBarTop = self._getScrollBarBoundary(_t);
 
             self.setScrollTop({
                 top: scrollBarTop, 
@@ -247,10 +256,9 @@ export default class ScrollBar extends Component {
      * 判断滚动条是否到达上下边界
      * @param {*} callback 
      */
-    getScrollBarBoundary (scrollBartop) {
-        let CV =  this.CV,
-            mainBoxHeight = CV.mainBoxHeight,
-            scrollBarHeight = this.$scrollBar.getRect().height;
+    _getScrollBarBoundary (scrollBartop) {
+        const   mainBoxHeight = this.CV.mainBoxHeight,
+                scrollBarHeight = this.$scrollBar.getRect().height;
             
         /**
          * 下边界
@@ -356,7 +364,7 @@ export default class ScrollBar extends Component {
             SBH = this.$scrollBar.getRect().height,
             _top = event.clientY + sTop - top - SBH / 2;
 
-        _top = this.getScrollBarBoundary(_top);
+        _top = this._getScrollBarBoundary(_top);
 
         _top = (_top - SBT < 0) ? (SBT - SBH) : SBT + SBH;
 
@@ -374,73 +382,120 @@ export default class ScrollBar extends Component {
     * param {top, animate}
     */
     setScrollTop (opt) {
-        let self = this,
-            CV = this.CV;
+        const   CV = this.CV,
+                { top, type } = opt;
 
-        let { top, type } = opt;
-
-        let { mainBoxHeight: MBH } = CV;
-        
-        let CBH = this.$contentBox.getRect().height,
-            disH = (MBH - this.$scrollBar.getRect().height) || 1,
-            scale = top / disH,
-            rote = top / CBH,
-            SBH = this.$scrollBar.getRect().height,
-            _top = (top + SBH > MBH) ? (MBH - SBH) : top,
-            _contentTop = - (CBH - MBH) * scale,
-            contentTop = (_contentTop < MBH - CBH) ? (MBH - CBH) : _contentTop;
-
-        let position = ((top) => {
-            if (top + SBH >= MBH) {
-                _top = MBH - SBH;
-                contentTop = MBH - CBH;
-            } else if (_top < 0) {
-                _top = 0;
-            }
-            return {
-                SBT: _top,
-                CBT: contentTop > 0 ? 0 : contentTop
-            }
-        })();
-
+        let dragPos = this._getPos(top);
         switch (type) {
             case 'dragScroll': 
-                this.$scrollBar.css({top: position.SBT + "px"});
-                this.$contentBox.css({top: position.CBT + "px"});
+                this._setPosition(dragPos);
                 break;
-                
+    
             case 'animateScroll':
-                this.$scrollBar.animate({top: {to : position.SBT + "px"}}, 200);
-                this.$contentBox.animate({top: {to : Math.ceil(position.CBT) + "px"}}, 200, function () {
-                    self.scrollCallBack({
-                        mainBoxWidth: CV.mainBoxWidth,
-                        mainBoxHeight: CV.mainBoxHeight,
-                        contentBoxHeight: CBH,
-                        contentBoxTop: parseInt(self.$contentBox.css('top')),
-                        scrollBarHeight: SBH,
-                        scrollBarTop: parseInt(self.$scrollBar.css('top'))
-                    });
-                });
+                this._setAniPos(type, dragPos);
                 break;
                 
             case 'wheelScroll':
-                let wheelCBT = (-top < MBH - CBH) ? (MBH - CBH) : - top,
-                    _wheelSBT = Math.ceil(rote * MBH);
-                    _wheelSBT = self.getScrollBarBoundary(_wheelSBT);
-
-                this.$scrollBar.css('top', _wheelSBT + "px");  
-                this.$contentBox.css('top', wheelCBT + "px");
+                let wheelPos = this._getWheelPos(top);
+                this._setPosition(wheelPos);
                 break;
         }
+        const   scrollParams = this._getScrollParams(type);
+        this.scrollCallBack(scrollParams);
+    }
 
-        this.scrollCallBack({
-            type: type,
+    /**
+     * 设置滚动条和内容的位置
+     * @param {*} position 
+     */
+    _setPosition (position) {
+        this.$scrollBar.css({top: position.SBT + "px"});
+        this.$contentBox.css({top: position.CBT + "px"});
+    }
+
+    /**
+     * 动画方式滚动
+     * @param {*} position 
+     */
+    _setAniPos (type, position) {
+        this.$scrollBar.animate({
+            top: {
+                to : position.SBT + "px"
+            }
+        }, 200);
+        this.$contentBox.animate({
+            top: {
+                to : Math.ceil(position.CBT) + "px"
+            }
+        }, 200, () => {
+            const   scrollParams = this._getScrollParams(type);
+            console.log(scrollParams);
+            this.scrollCallBack(scrollParams);
+        });
+    }
+
+    /**
+     * 滚轮方式获取位置
+     * @param {*} top 
+     */
+    _getWheelPos (top) {
+        let    { mainBoxHeight: MBH } = this.CV,
+                CBH = this.$contentBox.getRect().height,
+                rote = top / CBH;
+
+        let     wheelCBT = (-top < MBH - CBH) ? (MBH - CBH) : - top,
+                _wheelSBT = Math.ceil(rote * MBH);
+                _wheelSBT = this._getScrollBarBoundary(_wheelSBT);
+                
+        return {
+            SBT: _wheelSBT,
+            CBT: wheelCBT
+        }
+    }
+
+    /**
+     * 拖拽等方式获取位置
+     * @param {*} top 
+     */
+    _getPos (top) {
+        const   SBH = this.$scrollBar.getRect().height,
+                CBH = this.$contentBox.getRect().height,
+                { mainBoxHeight: MBH } = this.CV,
+                disH = (MBH - this.$scrollBar.getRect().height) || 1,
+                scale = top / disH;
+        
+        let     _top = (top + SBH > MBH) ? (MBH - SBH) : top,
+                _contentTop = - (CBH - MBH) * scale,
+                contentTop = (_contentTop < MBH - CBH) ? (MBH - CBH) : _contentTop;
+
+        if (top + SBH >= MBH) {
+            _top = MBH - SBH;
+            contentTop = MBH - CBH;
+        } else if (_top < 0) {
+            _top = 0;
+        }
+        return {
+            SBT: _top,
+            CBT: contentTop > 0 ? 0 : contentTop
+        }
+    }
+
+    /**
+     * callback 返回的参数
+     * @param {*} type 
+     */
+    _getScrollParams (type) {
+        const   CV = this.CV;
+        const   $scrollBar = this.$scrollBar;
+        const   $contentBox = this.$contentBox;
+        return {
+            type,
             mainBoxWidth: CV.mainBoxWidth,
             mainBoxHeight: CV.mainBoxHeight,
-            contentBoxHeight: CBH,
-            contentBoxTop: parseInt(self.$contentBox.css('top')),
-            scrollBarHeight: SBH,
-            scrollBarTop: parseInt(self.$scrollBar.css('top'))
-        });
+            contentBoxHeight: $contentBox.getRect().height,
+            contentBoxTop: parseInt($contentBox.css('top')),
+            scrollBarHeight: $scrollBar.getRect().height,
+            scrollBarTop: parseInt($scrollBar.css('top'))
+        }
     }
 }

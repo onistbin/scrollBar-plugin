@@ -6,6 +6,7 @@ import $ from 'jquery'
 
 
 const App = function () {
+    var $showScrollParams = W('#show-scrollparams');
 	var scrollBar = new ScrollBar({
         mainBox: '#main', 
         contentBox: '#content', 
@@ -16,7 +17,15 @@ const App = function () {
         scrollBarHoverBg: '#515151'
     });
     scrollBar.scroll(function (ev) {
-        console.log('first scrollbar, scroll event:', ev);
+        $showScrollParams.html(`
+            <p>type: ${ev.type}</p>
+            <p>mainBoxWidth: ${ev.mainBoxWidth}</p>
+            <p>mainBoxHeight: ${ev.mainBoxHeight}</p>
+            <p>contentBoxHeight: ${ev.contentBoxHeight}</p>
+            <p>contentBoxTop: ${ev.contentBoxTop}</p>
+            <p>scrollBarHeight: ${ev.scrollBarHeight}</p>
+            <p>scrollBarTop: ${ev.scrollBarTop}</p>
+        `);
     });
 };
 new App();
