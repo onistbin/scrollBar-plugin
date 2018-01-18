@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<title>scrollbar pluging example</title>
+	<meta charset="utf-8">
+    <script src="http://s9.qhres.com/lib/qwrap/113.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div id="main">
+        <div id="content">
+            <h1>这是开头。</h1>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <h1>这是一个标题。</h1>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <h1>这是结尾。</h1>
+            <h1>这是开头。</h1>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <h1>这是一个标题。</h1>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <h1>这是结尾。</h1>
+            <h1>这是开头。</h1>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <h1>这是一个标题。</h1>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <h1>这是结尾。</h1>
+            <h1>这是开头。</h1>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <h1>这是一个标题。</h1>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <p>这是一个段落。</p>
+            <h1>这是结尾。</h1>
+        </div>
+    </div>
+    
+    <p>可创建多个scrollbar，滚动时的参数都在scroll方法中能拿到</p> 
+    <p>scrollBar.scroll(function (ev) {})</p>
+
+    <script src="scrollbar.js"></script>
+    <script>
+        var scrollBar = new ScrollBar({
+            mainBox: '#main', 
+            contentBox: '#content', 
+            scrollBarClass: 'scrollBar',
+            scrollBarBoxClass: 'scrollbox',
+            scrollBarBg: '#c2c2c2',
+            mouseoverBarBg: '#8a8a8a',
+            scrollBarHoverBg: '#515151'
+        });
+        scrollBar.scroll(function (ev) {
+            // 滚动回调方法，ev中含有需要的信息
+            console.log(ev);
+        });
+    </script>
+</body>
+</html>
